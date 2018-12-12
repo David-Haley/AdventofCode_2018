@@ -7,7 +7,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Assertions; use Ada.Assertions;
 with NT_Console;
 
-procedure December_11 is
+procedure December_11a is
 
    package Natural_IO is new Ada.Text_IO.Integer_IO (Natural);
 
@@ -30,12 +30,11 @@ procedure December_11 is
    end Initialise;
 
    procedure Find_Maximum (Fuel_Cell : in Fuel_Cells;
-                           X_Max, Y_Max : out Coordinates;
-                           Maximum : out Integer;
-                           Size : in Positive := 3) is
+                           X_Max, Y_Max : out Coordinates) is
 
-      subtype Offsets is Natural range 0 .. Size - 1;
+      subtype Offsets is Natural range 0 .. 2;
 
+      Maximum : Integer := Integer'First;
       Sum : Integer;
 
    begin -- Find_Maximum
@@ -59,32 +58,56 @@ procedure December_11 is
       end loop; -- X
    end Find_Maximum;
 
+   procedure Find_Maximum (Fuel_Cell : in Fuel_Cells;
+                           X_Max, Y_Max : out Coordinates;
+                           Size_Max : out Positive) is
+
+      Maximum : Integer := Integer'First;
+      Size : Positive;
+      Sum : Integer;
+
+   begin -- Find_Maximum
+      Maximum := Integer'First;
+      for X in Coordinates loop
+         for Y in Coordinates loop
+            Size := 1;
+            Sum := 0;
+            while X + Size - 1 < Coordinates'Last and
+              Y + Size - 1< Coordinates'Last loop
+               for X_I in Coordinates range X .. X + Size - 1 loop
+                  Sum := Sum + Fuel_Cell (X_I, Y + Size - 1);
+               end loop; -- X_I in Coordinates range X .. X + Size - 1
+               for Y_I in Coordinates range Y .. Y + Size - 2 loop
+                  Sum := Sum + Fuel_Cell (X + Size - 1, Y_I);
+               end loop; -- Y_I in Coordinates range Y .. Y + Size - 2
+               if Sum > Maximum then
+                  Maximum := Sum;
+                  X_Max := X;
+                  Y_Max := Y;
+                  Size_Max := Size;
+               end if; -- Sum > Maximum
+               Size := Size + 1;
+            end loop; -- Size within limits
+         end loop; -- Y in Coordinates loop
+      end loop; -- X in Coordinates loop
+   end Find_Maximum;
+
    Input_File : File_Type;
    Grid_Serial_Number : Natural;
    Fuel_Cell : Fuel_Cells;
-   X, Y, Saved_X, Saved_Y : Coordinates;
-   Maximum : Integer;
-   Saved_Maximum : Integer := Integer'First;
-   Saved_Size : Positive;
+   X, Y: Coordinates;
+   Size : Positive;
 
-begin -- December_10
+begin -- December_11a
    Open (Input_File, In_File, "December_11.txt");
    Natural_IO.Get (Input_File, Grid_Serial_Number);
    Close (Input_File);
    Put_Line ("Grid Serial Number:" & Natural'Image (Grid_Serial_Number));
    Initialise (Grid_Serial_Number, Fuel_Cell);
-   Find_Maximum (Fuel_Cell, X, Y, Maximum);
+   Find_Maximum (Fuel_Cell, X, Y);
    Put_Line ("Fuel Cell Coordinates:" & Coordinates'Image (X) & "," &
                Coordinates'Image (Y));
-   for Size in Positive range Positive'First .. Coordinates'Last loop
-      Find_Maximum (Fuel_Cell, X, Y, Maximum, Size);
-      if Maximum > Saved_Maximum then
-         Saved_Maximum := Maximum;
-         Saved_X := X;
-         Saved_Y := Y;
-         Saved_Size := Size;
-      end if; -- Maximum > Saved_Maximum
-   end loop; -- Size in Positive range Positive'First .. Coordinates'Last
-   Put_Line ("Fuel Cell Coordinates:" & Coordinates'Image (Saved_X) & "," &
-      Coordinates'Image (Saved_Y) & "," & Positive'Image (Saved_Size));
-end December_11;
+   Find_Maximum (Fuel_Cell, X, Y, Size);
+   Put_Line ("Fuel Cell Coordinates:" & Coordinates'Image (X) & "," &
+      Coordinates'Image (Y) & "," & Positive'Image (Size));
+end December_11a;
