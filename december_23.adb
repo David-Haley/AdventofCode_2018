@@ -13,6 +13,7 @@ procedure December_23 is
    type Nano_Bots is record
       X, Y, Z : Integer;
       R : Natural;
+      Neighbours : Natural := 0;
    end record; -- Nan_Bots
 
    package Nano_Bot_Lists is new Ada.Containers.Vectors (Index_Type => Natural,
@@ -28,20 +29,19 @@ procedure December_23 is
    package Range_Sorts is new
      Nano_Bot_Lists.Generic_Sorting ("<" => R_Order);
 
-   Xc, Yc, Zc : Natural; -- Global variable used by R_C_Order
+   function Neighbour_Order (Left, Right : Nano_Bots) return Boolean is
 
-   function R_C_Order (Left, Right : Nano_Bots) return Boolean is
+      -- sort by neighbour count and then range closest to origin
 
-      -- Ordering based on distance that signal from Xc, Yc, Zc global
+   begin -- Neighbour_Order
+      return Left.Neighbours < Right.Neighbours or else
+        (Left.Neighbours = Right.Neighbours and
+         abs (Left.X) + abs (Left.Y) + abs (Left.Z) - Left.R <
+         abs (Right.X) + abs (Right.Y) + abs (Right.Z) - Right.R);
+   end Neighbour_Order;
 
-   begin -- R_C_Order
-      return abs (Left.X - Xc ) + abs (Left.Y - Yc) + abs (Left.Z - Zc) - Left.R
-        <
-      abs (Right.X - Xc) + abs (Right.Y - Yc) + abs (Right.Z - Zc) - Right.R;
-   end R_C_Order;
-
-   package Range_C_Sorts is new
-     Nano_Bot_Lists.Generic_Sorting ("<" => R_C_Order);
+   package Neighbour_Sorts is new
+     Nano_Bot_Lists.Generic_Sorting ("<" => Neighbour_Order);
 
    procedure Get_Input (Nano_Bot_List : out Nano_Bot_Lists.Vector) is
 
@@ -93,48 +93,114 @@ procedure December_23 is
       Abs (Nano_Bot_List (Bot_1).Z - Nano_Bot_List (Bot_2).Z);
    end Man_Distance;
 
-   function Man_Distance (Nano_Bot_List : in Nano_Bot_Lists.Vector;
-                          Bot : in Nano_Bot_Lists.Cursor;
-                         X, Y, Z : in Integer) return Natural is
-   begin -- Man_Distance
-      return Abs (Nano_Bot_List (Bot).X - X) +
-      Abs (Nano_Bot_List (Bot).Y - Y) +
-      Abs (Nano_Bot_List (Bot).Z - Z);
-   end Man_Distance;
+--     function Man_Distance (Nano_Bot_List : in Nano_Bot_Lists.Vector;
+--                            Bot : in Nano_Bot_Lists.Cursor;
+--                           X, Y, Z : in Integer) return Natural is
+--     begin -- Man_Distance
+--        return Abs (Nano_Bot_List (Bot).X - X) +
+--        Abs (Nano_Bot_List (Bot).Y - Y) +
+--        Abs (Nano_Bot_List (Bot).Z - Z);
+--     end Man_Distance;
 
-   procedure Centroid (Nano_Bot_List : in Nano_Bot_Lists.Vector;
-                       X, Y, Z : out Integer) is
-
-      Xc, Yc, Zc : Long_Long_Integer := 0;
-
-   begin -- Centroid
-      Xc := 0;
-      Yc := 0;
-      Zc := 0;
-      for I in Nano_Bot_List.Iterate loop
-         Xc := Xc + Long_Long_Integer (Nano_Bot_List (I).X);
-         Yc := Yc + Long_Long_Integer (Nano_Bot_List (I).Y);
-         Zc := Zc + Long_Long_Integer (Nano_Bot_List (I).Z);
-      end loop; -- I in Nano_Bot_List.Iterate
-      X := Natural (Xc / Long_Long_Integer (Length (Nano_Bot_List)));
-      Y := Natural (Yc / Long_Long_Integer (Length (Nano_Bot_List)));
-      Z := Natural (Zc / Long_Long_Integer (Length (Nano_Bot_List)));
-   end Centroid;
+--     Function Count_In_Range (Nano_Bot_List : in Nano_Bot_Lists.Vector;
+--                              X, Y, Z : in Integer) return Natural is
+--
+--        Result : Natural := 0;
+--
+--     begin -- Count_In_Range
+--        for I in Nano_Bot_List.Iterate loop
+--           if Man_Distance (Nano_Bot_List, I, X, Y, Z) <=
+--             Nano_Bot_List (I).R then
+--              Result := Result + 1;
+--           end if; -- in range
+--        end loop; -- I in Nano_Bot_List.Iterate
+--        return Result;
+--     end Count_In_Range;
 
    Function Count_In_Range (Nano_Bot_List : in Nano_Bot_Lists.Vector;
-                            X, Y, Z : in Integer) return Natural is
+                            Bot : in Nano_Bot_Lists.Cursor) return Natural is
 
       Result : Natural := 0;
 
    begin -- Count_In_Range
-   for I in Nano_Bot_List.Iterate loop
-      if Man_Distance (Nano_Bot_List, I, X, Y, Z) <=
-        Nano_Bot_List (I).R then
+      for I in Nano_Bot_List.Iterate loop
+         if Man_Distance (Nano_Bot_List, I, Bot) <=
+           Nano_Bot_List (I).R + Nano_Bot_List (Bot).R and I /= Bot then
             Result := Result + 1;
          end if; -- in range
-      end loop;
+      end loop; -- I in Nano_Bot_List.Iterate
       return Result;
    end Count_In_Range;
+
+--     procedure Iterate_Man_Sphere (Radius : in Natural;
+--                                  Nano_Bot_List : in Nano_Bot_Lists.Vector) is
+--
+--     begin -- Iterate_Man_Sphere
+--        for X in Integer range - Radius .. Radius loop
+--           for Y in Integer range - Radius + abs (X) .. Radius - abs (X) loop
+--              for Z in Integer range - Radius + abs (X) + abs (Y) ..
+--                Radius - abs (X) - abs (Y) loop
+--                 Put_Line (Integer'Image (X) & Integer'Image (Y) &
+--                             Integer'Image (Z) &
+--                             Natural'Image (Count_In_Range (Nano_Bot_List,
+--                             X, Y, Z)));
+--              end loop; -- Z in Integer range ...
+--           end loop; -- Y in Integer range ...
+--        end loop; -- X in Integer range - Radius .. Radius
+--     end Iterate_Man_Sphere;
+
+   procedure Intersect (Nano_Bot_List : in Nano_Bot_Lists.Vector;
+                        Bot_1, Bot_2 : in Nano_Bot_Lists.Cursor;
+                        X, Y, Z : out Integer) is
+
+   begin -- Intersect
+
+   end Intersect;
+
+   procedure Least_Overlap (Nano_Bot_List : in Nano_Bot_Lists.Vector) is
+      -- assumes list is sorted least to most neighbours
+
+      Last_Bot : Nano_Bot_Lists.Cursor := Last (Nano_Bot_List);
+      Max_Neighbours : constant Natural :=
+        Nano_Bot_List (Last (Nano_Bot_List)).Neighbours;
+      Min_Overlap : Natural := Natural'Last;
+      Min_Overlap_Bot : Nano_Bot_Lists.Cursor;
+
+   begin -- Least_Overlap
+      while Nano_Bot_List (Last_Bot).Neighbours = Max_Neighbours loop
+         for I in Nano_Bot_List.Iterate loop
+            if Man_Distance (Nano_Bot_List, I, Last_Bot) <=
+              Nano_Bot_List (I).R + Nano_Bot_List (Last_Bot).R and
+              I /= Last_Bot then
+               if Nano_Bot_List (I).R + Nano_Bot_List (Last_Bot).R -
+                 Man_Distance (Nano_Bot_List, I, Last_Bot) < Min_Overlap then
+                  Min_Overlap := Nano_Bot_List (I).R +
+                    Nano_Bot_List (Last_Bot).R -
+                    Man_Distance (Nano_Bot_List, I, Last_Bot);
+                  Min_Overlap_Bot := Last_Bot;
+               end if; -- smaller overlap
+            end if; -- in range
+         end loop; -- I in Nano_Bot_List.Iterate
+         Previous (Last_Bot);
+      end loop; -- Nano_Bot_List (Last_Bot) = Max_Neighbours
+      Put_Line ("Least Overlap:" & Natural'Image (Min_Overlap));
+      for I in Nano_Bot_List.Iterate loop
+         if Nano_Bot_List (I).R + Nano_Bot_List (Min_Overlap_Bot).R -
+           Man_Distance (Nano_Bot_List, I , Min_Overlap_Bot) = Min_Overlap
+           and I /= Min_Overlap_Bot then
+            Put_Line ("(" & Integer'Image (Nano_Bot_List (I).X) & "," &
+                        Integer'Image (Nano_Bot_List (I).Y) & "," &
+                        Integer'Image (Nano_Bot_List (I).Z) & ")" &
+                        Natural'Image (Nano_Bot_List (I).R) &
+                        Natural'Image (Nano_Bot_List (I).Neighbours));
+            Put_Line ("Distance to origin: " &
+                        Natural'Image (abs (Nano_Bot_List (Min_Overlap_Bot).X) +
+                        abs (Nano_Bot_List (Min_Overlap_Bot).Y) +
+                        abs (Nano_Bot_List (Min_Overlap_Bot).Z) -
+                        (Nano_Bot_List (Min_Overlap_Bot).R - Min_Overlap)));
+         end if; -- ... = Min_Overlap
+      end loop; -- I in Nano_Bot_List.Iterate
+   end Least_Overlap;
 
    Nano_Bot_List : Nano_Bot_Lists.Vector;
    Last_Bot : Nano_Bot_Lists.Cursor;
@@ -150,25 +216,17 @@ begin -- December_23
         Nano_Bot_List (Last_Bot).R then
          Nano_Bot_Count := Nano_Bot_Count + 1;
       end if; -- in range
+      Nano_Bot_List (I).Neighbours := Count_In_Range (Nano_Bot_List, I);
    end loop; -- I in Nano_Bot_List.Iterate
    Put_Line ("In range nanobots:" & Natural'Image (Nano_Bot_Count));
-   Centroid (Nano_Bot_List, Xc, Yc, Zc);
-   Put_Line ("Count in range of (" & Integer'Image (Xc) & Integer'Image (Yc) &
-               Integer'Image (Zc) & "):" &
-               Natural'Image (Count_In_Range (Nano_Bot_List, Xc, Yc, Zc)));
-   Range_C_Sorts.Sort (Nano_Bot_List);
-   Assert (Range_C_Sorts.Is_Sorted (Nano_Bot_List), "not sorted range from C");
-   for I in Nano_Bot_List.Iterate loop
-      if Man_Distance (Nano_Bot_List, I, Xc, Yc, Zc) <=
-        Nano_Bot_List (I).R then
-         Put ("In Range: ");
-      else
-         Put ("Out of Range:");
-      end if; -- I in Nano_Bot_List.Iterate
-      Put_Line (Natural'Image (Man_Distance (Nano_Bot_List, I, Xc, Yc, Zc)
-                - Nano_Bot_List (I).R) & " (" &
-                  Integer'Image (Nano_Bot_List (I).X) & "," &
-                  Integer'Image (Nano_Bot_List (I).Y) & "," &
-                  Integer'Image (Nano_Bot_List (I).Z) & ")");
-   end loop; -- I in Nano_Bot_List.Iterate
+   Neighbour_Sorts.Sort (Nano_Bot_List);
+   Assert (Neighbour_Sorts.Is_Sorted (Nano_Bot_List), "not sorted");
+--     for I in Nano_Bot_List.Iterate loop
+--        Put_Line ("(" & Integer'Image (Nano_Bot_List (I).X) & "," &
+--                    Integer'Image (Nano_Bot_List (I).Y) & "," &
+--                    Integer'Image (Nano_Bot_List (I).Z) & ")" &
+--                    Natural'Image (Nano_Bot_List (I).R) &
+--                    Natural'Image (Nano_Bot_List (I).Neighbours));
+--     end loop; -- I in Nano_Bot_List.Iterate
+   Least_Overlap (Nano_Bot_List);
 end December_23;
