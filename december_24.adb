@@ -40,7 +40,7 @@ procedure December_24 is
      Ada.Containers.Ordered_Maps (Values, Attack_Elements);
    use Attack_Lists;
 
-   Input_Error : Exception;
+   Input_Error, Logic_Error : Exception;
 
    procedure Get_Input (Group_Store : out Group_Stores.Map) is
 
@@ -56,7 +56,6 @@ procedure December_24 is
       Last, End_Hit, Property_Start : Natural;
       Group_Index : Group_Indices := 1;
       Group : Groups;
-
 
    begin -- Get_Input
       Group_Store := Group_Stores.Empty_Map;
@@ -170,7 +169,7 @@ procedure December_24 is
       begin -- "<"
          return Left.Effective_Power < Right.Effective_Power or
            (Left.Effective_Power = Right.Effective_Power and
-              Left.Initiative > Right.Initiative);
+              Left.Initiative < Right.Initiative);
       end "<";
 
       function "=" (Left, Right : Group_Priorities) return Boolean is
@@ -283,7 +282,7 @@ procedure December_24 is
                Destroys := Group_Store (A).Quantity * Group_Store (A).Damage
                  / Group_Store (D).Hit;
             end if; -- (Contains (Group_Store (D).Weakness, ...
-                    -- integer division reaults in floor
+            -- integer division reaults in floor
             No_Change := No_Change and Destroys = 0;
             -- no effective attack
             if Destroys >= Group_Store (D).Quantity then
@@ -297,7 +296,8 @@ procedure December_24 is
 
    Group_Store : Group_Stores.Map := Group_Stores.Empty_Map;
    Attack_List : Attack_Lists.Map;
-   Unit_Count : Natural;
+   Unit_Count : Natural := 0;
+   Immune_Count, Infection_Count : Natural := 0;
    No_Change : Boolean;
    Boost : Values := 1;
 
@@ -309,7 +309,6 @@ begin -- December_24
       exit when Is_Empty (Attack_List);
       Battle (Group_Store, Attack_List, No_Change);
    end loop; -- until nothing left to attack
-   Unit_Count := 0;
    for G in Iterate (Group_Store) loop
       Unit_Count := Unit_Count + Group_Store (G).Quantity;
    end loop; -- G in Iterate (Group_Store)
@@ -322,25 +321,28 @@ begin -- December_24
             Group_Store (G).Damage := Group_Store (G).Damage + Boost;
          end if; -- Group_Store (G).Army = Immune_System
       end loop; -- G in Iterate (Group_Store)
-      No_Change := False;
-      -- provide initial value so there is atleast one battle
       loop -- until nothing left to attack
          Select_Targets (Group_Store, Attack_List);
-         exit when Is_Empty (Attack_List) or No_Change;
          Battle (Group_Store, Attack_List, No_Change);
-      end loop; -- until nothing left to attack
-      Unit_Count := 0;
-      if Is_Empty (Attack_List) then
-         -- ended with one army having no units left
+         Immune_Count := 0;
+         Infection_Count := 0;
          for G in Iterate (Group_Store) loop
             if Group_Store (G).Army = Immune_System then
-               Unit_Count := Unit_Count + Group_Store (G).Quantity;
+               Immune_Count := Immune_Count + Group_Store (G).Quantity;
+            elsif Group_Store (G).Army = Infection then
+               Infection_Count := Infection_Count + Group_Store (G).Quantity;
+            else
+               raise Logic_Error with "Unknown army";
             end if; -- Group_Store (G).Army = Immune_System
          end loop; -- G in Iterate (Group_Store)
-      end if; -- Is_Empty (Attack_List)
-      exit when Unit_Count > 0;
+         -- Ends with one army having no units left or no effective attack can
+         -- be made.
+         exit when Immune_Count = 0 or Infection_Count = 0 or No_Change;
+      end loop; -- until nothing left to attack
+      exit when Immune_Count > 0 and Infection_Count = 0;
       Boost := Boost + 1;
    end loop; -- until minimum boost
-   Put_Line ("Part two, remaining immune system units:" & Unit_Count'Img);
+   Put_Line ("Boost:" & Boost'Img);
+   Put_Line ("Part two, remaining immune system units:" & Immune_Count'Img);
    Put_CPU_Time;
 end December_24;
