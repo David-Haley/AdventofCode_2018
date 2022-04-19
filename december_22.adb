@@ -56,7 +56,7 @@ procedure December_22 is
       subtype Times is Natural;
 
       Search_Limit : constant Natural := 7;
-      subtype Coordinates is Natural range 0 .. 2 * Limit + Search_Limit;
+      subtype Coordinates is Natural range 0 .. Limit + Search_Limit;
       Geo_X_Multiplier : constant Natural := 16807;
       -- Problem definition
       Geo_Y_Multiplier : constant Natural := 48271;
@@ -348,7 +348,7 @@ procedure December_22 is
       end loop; -- X in Coordinates range 0 .. Target_X
       Put_Line ("Part one, risk level:" & Risk_Level'Img);
       Put_CPU_Time;
-      Put_Line ("Part two, time :" & Find_Path (Cave, Target_X, Target_Y)'Img);
+      Put_Line ("Part two, time:" & Find_Path (Cave, Target_X, Target_Y)'Img);
       Put_CPU_Time;
    end Solve;
 
